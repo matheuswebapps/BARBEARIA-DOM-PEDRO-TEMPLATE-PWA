@@ -58,13 +58,51 @@ const App: React.FC = () => {
       linkApple.href = settings.appIconUrl;
     }
   }, [settings.appIconUrl]);
-  // Keep document title in sync with Admin settings.
-  // IMPORTANT: We do NOT generate a dynamic manifest via Blob URL because Chrome may
-  // consider it non-installable. The real manifest lives at /manifest.webmanifest.
+
+  // Update manifest (name + icon) without touching the original design.
   useEffect(() => {
-    if (settings.name) document.title = settings.name;
-  }, [settings.name]);
-// Unified Navigation Handler (Desktop & Mobile)
+    try {
+      if (settings.name) document.title = settings.name;
+
+      const manifest = {
+        name: settings.name || 'Barbearia',
+        short_name: (settings.name || 'Barbearia').slice(0, 12),
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#FDFBF7',
+        theme_color: '#2C1A1D',
+        icons: [
+          {
+            src: settings.appIconUrl || '/logo.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: settings.appIconUrl || '/logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+        ],
+      };
+
+      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      let link = document.querySelector("link[rel='manifest']") as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'manifest';
+        document.head.appendChild(link);
+      }
+      link.href = url;
+
+      return () => URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    }
+  }, [settings.name, settings.appIconUrl]);
+
+  // Unified Navigation Handler (Desktop & Mobile)
   const handleTabChange = (tab: string) => {
     // Secret Access Logic: 5 consecutive clicks on 'home'
     if (tab === 'home') {
